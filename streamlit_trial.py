@@ -8,6 +8,7 @@ df=pd.read_csv("media prediction and its cost.csv")
 features_to_drop = ['avg_cars_at home(approx).1', 'net_weight', 'meat_sqft', 'salad_bar', 'food_category', 'food_department', 'food_family', 'sales_country', 'marital_status', 'education', 'member_card', 'houseowner', 'brand_name']
 df.drop(columns=features_to_drop, inplace=True)
 
+
 class output:
     def __init__(self,mse,r2,pred) -> None:
         self.mse = mse
@@ -57,16 +58,22 @@ def Lasso_reg(df,train_ratio):
     
     return output(mean_squared_error(y, y_pred),r2_score(y, y_pred),y_pred)
 
-def Random_Forest(df,train_ratio):
+def Random_Forest(df1,train_ratio):
     from sklearn.ensemble import RandomForestRegressor
     from sklearn.metrics import mean_squared_error, r2_score
 
-    new_cust_deets=df.iloc[:-1].drop(columns='cost')
+    new_cust_deets=(df1.iloc[-1]).drop(['cost'])
     
-    X = df.drop(columns='cost')
-    y = df['cost']
+    # last_row = len(df1)
+    # df1=df1.drop(df.index[60428],axis=0)
     
-    n_rows = df.shape[0]
+    df1=df1.drop([df1.index[-1]])
+    
+    
+    X = df1.drop(columns='cost')
+    y = df1['cost']
+    
+    n_rows = df1.shape[0]
     train_rows = int(n_rows * train_ratio)
     X_train = X[:train_rows]
     y_train = y[:train_rows]
@@ -78,9 +85,21 @@ def Random_Forest(df,train_ratio):
 
     y_pred = rf.predict(X_test)
     
-    new_cust_cac=rf.predict(new_cust_deets)
+    # new_cust_deets=new_cust_deets.reshape(1,-1)
+    # new_cust_deets['store_sales(in millions)'] = 4.65
     
-    return output(mean_squared_error(y_test, y_pred),r2_score(y_test, y_pred),y_pred)
+    # new_cust_deets['store_cost(in millions)'] = 4.65
+    
+    # new_cust_deets['SRP'] = 4.65
+    
+    # new_cust_deets['gross_weight'] = 4.65
+    
+    
+    
+    
+    new_cust_cac=rf.predict([new_cust_deets])
+    
+    return output(mean_squared_error(y_test, y_pred),r2_score(y_test, y_pred),new_cust_cac)
     
 if __name__ == "__main__":
 
@@ -96,7 +115,7 @@ if __name__ == "__main__":
 
     st.markdown(""" ## Enter Customer Data """)
 
-    new_inp=pd.DataFrame(columns=df.columns,index = [0])
+    new_inp=pd.DataFrame(columns=df.columns[:-1:],index = [((len(df)))])
 
     new_inp['store_sales(in millions)'].iloc[0] = st.number_input('Enter estimated Store Sales in months')
     
@@ -154,11 +173,12 @@ if __name__ == "__main__":
     st.divider()
 
     df1=pd.concat([df,new_inp])
+    
 
     categorical_cols = df1.select_dtypes(include='object').columns
     from sklearn.preprocessing import LabelEncoder
     df1[categorical_cols] = df1[categorical_cols].apply(LabelEncoder().fit_transform)
-    df1.dropna()
+    
         
     split=st.slider('Split the test and train data',0.0,1.0,0.7)
 

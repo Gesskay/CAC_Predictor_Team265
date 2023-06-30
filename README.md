@@ -6,3 +6,8 @@ The purpose of this project is to analyse existing consumer behaviour and unders
 ## Demo Video
 https://drive.google.com/drive/folders/17kKvgFMHHo-u6LgZrz24VUJRBNh25IuI?usp=drive_link
 
+## Note
+
+We have successfully submitted our assignments and project files along with the full project report on zoho forms with our personal github repo link with public access and also uploaded the link of the demo video on the smartinternz portal as per the instructions 
+
+Thank you!

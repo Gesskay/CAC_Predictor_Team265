@@ -1,7 +1,8 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
-
+import graphviz
+from sklearn import tree 
 
 df=pd.read_csv("media prediction and its cost.csv")
 
@@ -10,10 +11,11 @@ df.drop(columns=features_to_drop, inplace=True)
 
 
 class output:
-    def __init__(self,mse,r2,pred) -> None:
+    def __init__(self,mse,r2,pred,graphs) -> None:
         self.mse = mse
         self.r2 = r2
         self.pred = pred
+        self.graphs = graphs
 
 def Linear_reg(df,train_ratio):
     from sklearn.linear_model import LinearRegression
@@ -85,21 +87,12 @@ def Random_Forest(df1,train_ratio):
 
     y_pred = rf.predict(X_test)
     
-    # new_cust_deets=new_cust_deets.reshape(1,-1)
-    # new_cust_deets['store_sales(in millions)'] = 4.65
-    
-    # new_cust_deets['store_cost(in millions)'] = 4.65
-    
-    # new_cust_deets['SRP'] = 4.65
-    
-    # new_cust_deets['gross_weight'] = 4.65
-    
-    
-    
+        
     
     new_cust_cac=rf.predict([new_cust_deets])
     
-    return output(mean_squared_error(y_test, y_pred),r2_score(y_test, y_pred),new_cust_cac)
+    
+    return output(mean_squared_error(y_test, y_pred),r2_score(y_test, y_pred),new_cust_cac,rf.estimators_)
     
 if __name__ == "__main__":
 
@@ -107,7 +100,11 @@ if __name__ == "__main__":
 
     st.header("Team No. 265")
 
-    st.markdown(""" Members: ### Anusha Garg    #### Bhavya Nagpal    #### Saatvik Gupta #### Gursehaj Singh    """)
+    st.markdown(""" ### Members: 
+                #### Anusha Garg    
+                #### Bhavya Nagpal   
+                #### Saatvik Gupta 
+                #### Gursehaj Singh    """)
 
     st.divider()
 
@@ -184,7 +181,7 @@ if __name__ == "__main__":
 
     model = st.radio(
         "Select the model on which you want to input",
-        ('Linear Regression', 'Lasso Regression', 'Random Forests'))
+        ('Random Forests','Linear Regression', 'Lasso Regression'))
 
     if st.button('Train Data'):
         match model:
@@ -204,5 +201,6 @@ if __name__ == "__main__":
     st.write(out.r2)
 
     with st.expander("See Visualisations and Plots"):
-        st.write("The chart above shows some numbers I picked for you.I rolled actual dice for these, so they're *guaranteed* to be random.")
+        dot_data = tree.export_graphviz(out.graphs[2], out_file=None,filled=True)
+
 

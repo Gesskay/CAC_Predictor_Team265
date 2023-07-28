@@ -3,12 +3,16 @@ import numpy as np
 import pandas as pd
 import graphviz
 from sklearn import tree 
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+import requests
+import json
+
 
 df=pd.read_csv("media prediction and its cost.csv")
 
 features_to_drop = ['avg_cars_at home(approx).1', 'net_weight', 'meat_sqft', 'salad_bar', 'food_category', 'food_department', 'food_family', 'sales_country', 'marital_status', 'education', 'member_card', 'houseowner', 'brand_name']
 df.drop(columns=features_to_drop, inplace=True)
-
 
 class output:
     def __init__(self,mse,r2,pred,graphs) -> None:
@@ -16,95 +20,22 @@ class output:
         self.r2 = r2
         self.pred = pred
         self.graphs = graphs
-
-def Linear_reg(df,train_ratio):
-    from sklearn.linear_model import LinearRegression
-    from sklearn.metrics import mean_squared_error, r2_score
-
-    X = df.drop(columns='cost')
-    y = df['cost']
-
-    n_rows = df.shape[0]
-    train_rows = int(n_rows * train_ratio)
-    X_train = X[:train_rows]
-    y_train = y[:train_rows]
-    X_test = X[train_rows:]
-    y_test = y[train_rows:]
-
-    reg = LinearRegression()
-    reg.fit(X_train, y_train)
-    
-    y_pred = reg.predict(X_test)
-    
-    return output(mean_squared_error(y_test, y_pred),r2_score(y_test, y_pred),y_pred)
-    
-def Lasso_reg(df,train_ratio):
-    from sklearn.linear_model import Lasso
-    from sklearn.metrics import mean_squared_error, r2_score
-
-    X = df.drop(columns='cost')
-    y = df['cost']
-    
-    n_rows = df.shape[0]
-    train_rows = int(n_rows * train_ratio)
-    X_train = X[:train_rows]
-    y_train = y[:train_rows]
-    X_test = X[train_rows:]
-    y_test = y[train_rows:]
-    
-
-    lasso = Lasso(alpha=0.01)
-    lasso.fit(X, y)
-
-    y_pred = lasso.predict(X)
-    
-    return output(mean_squared_error(y, y_pred),r2_score(y, y_pred),y_pred)
-
-def Random_Forest(df1,train_ratio):
-    from sklearn.ensemble import RandomForestRegressor
-    from sklearn.metrics import mean_squared_error, r2_score
-
-    new_cust_deets=(df1.iloc[-1]).drop(['cost'])
-    
-    # last_row = len(df1)
-    # df1=df1.drop(df.index[60428],axis=0)
-    
-    df1=df1.drop([df1.index[-1]])
-    
-    
-    X = df1.drop(columns='cost')
-    y = df1['cost']
-    
-    n_rows = df1.shape[0]
-    train_rows = int(n_rows * train_ratio)
-    X_train = X[:train_rows]
-    y_train = y[:train_rows]
-    X_test = X[train_rows:]
-    y_test = y[train_rows:]
-
-    rf = RandomForestRegressor(n_estimators=100, random_state=42)
-    rf.fit(X_train, y_train)
-
-    y_pred = rf.predict(X_test)
-    
-        
-    
-    new_cust_cac=rf.predict([new_cust_deets])
-    
-    
-    return output(mean_squared_error(y_test, y_pred),r2_score(y_test, y_pred),new_cust_cac,rf.estimators_)
     
 if __name__ == "__main__":
+
+
+    api = 'http://localhost:5000/test'
 
     st.title("Customer Acquisition Cost Predictor")
 
     st.header("Team No. 265")
 
     st.markdown(""" ### Members: 
-                #### Anusha Garg    
-                #### Bhavya Nagpal   
-                #### Saatvik Gupta 
-                #### Gursehaj Singh    """)
+    Anusha Garg    
+    Bhavya Nagpal   
+    Saatvik Gupta    
+    Gursehaj Singh
+    """)
 
     st.divider()
 
@@ -119,7 +50,6 @@ if __name__ == "__main__":
     new_inp['store_cost(in millions)'].iloc[0] = st.number_input('Enter estimated Store Cost (In Millions)')
     
     new_inp['unit_sales(in millions)'].iloc[0] = st.slider('Enter Unit Sales (In Millions)',1,5,3)
-    
     
     new_inp['promotion_name'].iloc[0] = st.selectbox('Enter The Promotion Name',(df.promotion_name.unique()))
 
@@ -181,26 +111,30 @@ if __name__ == "__main__":
 
     model = st.radio(
         "Select the model on which you want to input",
-        ('Random Forests','Linear Regression', 'Lasso Regression'))
+        (['Random Forests']))
 
     if st.button('Train Data'):
         match model:
-            case 'Linear Regression':
-                out=Linear_reg(df1,split)
-            case 'Lasso Regression':
-                out=Lasso_reg(df1,split)
             case 'Random Forests':
-                out=Random_Forest(df1,split)
+                data_dict=(df1.to_dict())
+                data_dict["train_ratio"]=split
+                payload=json.dumps(data_dict)
+                headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+                response = requests.post(api, data=payload, headers=headers)
+                print(response)
+                response_dict=response.json()
+                out=output(response_dict["mse"],response_dict["r2"],response_dict["pred"],response_dict["graphs"])
+                
     st.divider()
     st.markdown(""" ### The Predicted CAC for the customer is """)
     st.write(out.pred)
     st.divider()
     st.markdown(""" #### The MSE is """)
     st.write(out.mse)
-    st.markdown(""" #### The R^2^ is """)
+    st.markdown(""" #### The R^2 is """)
     st.write(out.r2)
-
-    with st.expander("See Visualisations and Plots"):
-        dot_data = tree.export_graphviz(out.graphs[2], out_file=None,filled=True)
-
+    
+    dot_data = tree.export_graphviz(out.graphs[2], out_file=None,filled=True)
+    print(type(dot_data))
+    st.graphviz_chart(dot_data,True)
 
